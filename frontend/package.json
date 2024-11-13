@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "voiceapp-frontend",
   "version": "1.0.0",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -7,8 +7,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "predeploy": "expo export:web",
-    "deploy": "serve web-build -l 3000"
+    "build": "npx expo export:web",
+    "serve": "npx serve web-build -l 3000"
   },
   "dependencies": {
     "expo": "~49.0.0",
