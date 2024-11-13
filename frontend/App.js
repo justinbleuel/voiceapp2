@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 
-const API_URL = const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function App() {
   const [audioFile, setAudioFile] = useState(null);
