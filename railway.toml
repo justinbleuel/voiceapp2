@@ -1,17 +1,5 @@
-[[services]]
-internal_port = 3000
-protocol = "http"
-name = "frontend"
-project = "voiceapp2"
+[build]
+builder = "nixpacks"
 
-[services.environment]
-NODE_ENV="production"
-
-[[services]]
-internal_port = 8080
-protocol = "http"
-name = "backend"
-project = "voiceapp2"
-
-[services.environment]
-NODE_ENV="production"
+[deploy]
+startCommand = "cd frontend && npm install && npm run web"
