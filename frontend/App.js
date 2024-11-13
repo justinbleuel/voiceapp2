@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 
-const API_URL = __DEV__ ? 'http://localhost:3000' : 'https://voiceapp2-production.up.railway.app';
+const API_URL = __DEV__ ? 'http://localhost:3000' : 'https://handsome-charm-production.up.railway.app';
 
 const App = () => {
   const [audioFile, setAudioFile] = useState(null);
