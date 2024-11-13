@@ -8,13 +8,14 @@ const OpenAI = require('openai');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 3000;
 
 app.use(cors({
     origin: [
-      'http://localhost:8081',  // Expo development server
-      'http://localhost:8080',
-      'https://handsome-charm-production.up.railway.app'
+      'https://handsome-charm-production.up.railway.app',
+        'http://localhost:8081',  // Expo development server
+      'http://localhost:3000'
+      
     ],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Accept'],
