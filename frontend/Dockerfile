@@ -1,26 +1,21 @@
-# Use Node.js as base image
 FROM node:18
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies with verbose logging
-RUN npm install --verbose
+# Install dependencies
+RUN npm install
 
-# Install expo CLI globally
-RUN npm install -g expo-cli@latest
+# Install expo CLI
+RUN npm install -g expo-cli
 
 # Copy the rest of the application
 COPY . .
 
-# Create the build directory
-RUN mkdir -p web-build
-
-# Build the app with debugging
-RUN npx expo export:web --verbose || (echo "Build failed" && exit 1)
+# Build the app
+RUN npx expo export:web || (echo "Build failed" && exit 1)
 
 # Install serve
 RUN npm install -g serve
