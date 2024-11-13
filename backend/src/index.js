@@ -38,9 +38,14 @@ const upload = multer({
 }).single('audio');
 
 app.use(cors({
-    origin: process.env.FRONTEND_URL || '*',
+    origin: [
+      'https://handsome-charm-production.up.railway.app',
+      'http://localhost:3000',
+      'http://localhost:8081'
+    ],
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept']
+    allowedHeaders: ['Content-Type', 'Accept'],
+    credentials: true
   }));
 
 // Helper function for transcription
