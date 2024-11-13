@@ -10,6 +10,17 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 8080;
 
+app.use(cors({
+    origin: [
+      'http://localhost:8081',  // Expo development server
+      'http://localhost:8080',
+      'https://handsome-charm-production.up.railway.app'
+    ],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept'],
+    credentials: true
+  }));
+
 // Initialize APIs
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
@@ -36,17 +47,6 @@ const upload = multer({
     fileSize: 25 * 1024 * 1024 // 25MB limit
   }
 }).single('audio');
-
-app.use(cors({
-    origin: [
-      'https://handsome-charm-production.up.railway.app',
-      'http://localhost:3000',
-      'http://localhost:8081'
-    ],
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept'],
-    credentials: true
-  }));
 
 // Helper function for transcription
 async function transcribeAudio(filepath) {
