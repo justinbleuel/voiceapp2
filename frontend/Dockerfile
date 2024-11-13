@@ -7,15 +7,20 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies with verbose logging
+RUN npm install --verbose
+
+# Install expo CLI globally
+RUN npm install -g expo-cli@latest
 
 # Copy the rest of the application
 COPY . .
 
-# Build the app
-RUN npm install -g expo-cli
-RUN npx expo export:web
+# Create the build directory
+RUN mkdir -p web-build
+
+# Build the app with debugging
+RUN npx expo export:web --verbose || (echo "Build failed" && exit 1)
 
 # Install serve
 RUN npm install -g serve
