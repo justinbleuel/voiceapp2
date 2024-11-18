@@ -1,4 +1,3 @@
-// metro.config.js
 const { getDefaultConfig } = require('@expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
@@ -6,9 +5,14 @@ const config = getDefaultConfig(__dirname);
 module.exports = {
   ...config,
   watchFolders: [__dirname],
-  maxWorkers: 2,  // Reduce the number of workers
-  transformer: {
-    ...config.transformer,
-    assetPlugins: ['expo-asset/tools/hashAssetFiles'],
+  resolver: {
+    ...config.resolver,
+    nodeModulesPaths: [__dirname],
+  },
+  watcher: {
+    additionalExts: ['mjs', 'cjs'],
+    watchman: {
+      deferStates: ['hg.update', 'fs.drop'],
+    },
   },
 };

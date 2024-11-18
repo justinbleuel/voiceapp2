@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,20 +6,77 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
-  Alert,
   Platform,
-  ScrollView,
+  Image,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
+import { supabase } from './supabase'; // Make sure this import points to your supabase.js file
+//import config from './config';
 
-//const API_URL = __DEV__ ? 'http://localhost:3000' : 'https://voiceapp2-production.up.railway.app';
-const API_URL = 'http://localhost:3000'
+
+const API_URL = 'http://localhost:3000';//process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+
 const App = () => {
   const [audioFile, setAudioFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState('');
   const [transcription, setTranscription] = useState('');
   const [error, setError] = useState('');
+  const [session, setSession] = useState(null);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log('Current session:', currentSession);
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      console.log('Auth state changed:', _event);
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: Platform.OS === 'web' 
+            ? 'http://localhost:19006/auth/callback'
+            : 'yourscheme://'
+        }
+      });
+  
+      if (error) {
+        console.error('Login error:', error);
+        setError(error.message);
+      } else {
+        console.log('Login successful:', data);
+      }
+    } catch (error) {
+      console.error('Error:', error.message);
+      setError(error.message);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setSession(null);
+      setUser(null);
+    } catch (error) {
+      console.error('Error:', error.message);
+      setError(error.message);
+    }
+  };
 
   const pickAudio = async () => {
     try {
@@ -41,12 +98,21 @@ const App = () => {
   };
 
   const uploadAndSummarize = async () => {
-    if (!audioFile) return;
+    if (!audioFile) {
+      setError('Please select an audio file first');
+      return;
+    }
+    
+    if (!session) {
+      setError('Please login first');
+      return;
+    }
 
     setLoading(true);
     setError('');
     
     try {
+      console.log('Starting upload process');
       const formData = new FormData();
       
       if (Platform.OS === 'web') {
@@ -62,20 +128,28 @@ const App = () => {
       }
 
       console.log('Sending request to:', `${API_URL}/api/summarize`);
+      console.log('Session token:', session.access_token);
 
       const response = await fetch(`${API_URL}/api/summarize`, {
         method: 'POST',
         body: formData,
         headers: {
           'Accept': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('Response data:', data);
+      
       setSummary(data.summary || '');
       setTranscription(data.transcription || '');
 
@@ -92,6 +166,36 @@ const App = () => {
       <View style={styles.content}>
         <Text style={styles.title}>Voice Notes Summary</Text>
         
+        {/* Auth Section */}
+        <View style={styles.authContainer}>
+          {user ? (
+            <View style={styles.userInfo}>
+              {user.user_metadata?.avatar_url && (
+                <Image 
+                  source={{ uri: user.user_metadata.avatar_url }}
+                  style={styles.userPicture}
+                />
+              )}
+              <Text style={styles.userName}>
+                {user.user_metadata?.full_name || user.email}
+              </Text>
+              <TouchableOpacity 
+                style={styles.authButton} 
+                onPress={handleLogout}
+              >
+                <Text style={styles.authButtonText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.authButton} 
+              onPress={handleLogin}
+            >
+              <Text style={styles.authButtonText}>Sign in with Google</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         {error ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
@@ -123,9 +227,13 @@ const App = () => {
                   <Text style={styles.actionButtonText}>Change File</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={[styles.actionButton, styles.primaryButton]} 
+                  style={[
+                    styles.actionButton, 
+                    styles.primaryButton,
+                    !session && styles.disabledButton
+                  ]} 
                   onPress={uploadAndSummarize}
-                  disabled={loading}
+                  disabled={loading || !session}
                 >
                   <Text style={[styles.actionButtonText, styles.primaryButtonText]}>
                     {loading ? 'Processing...' : 'Summarize'}
@@ -161,7 +269,7 @@ const App = () => {
       </View>
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   
@@ -196,14 +304,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
   },
   uploadButton: {
     borderWidth: 2,
@@ -279,27 +380,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
   },
   transcriptionContainer: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
   },
   sectionTitle: {
     fontSize: 20,
@@ -316,6 +403,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     color: '#666666',
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });
 
