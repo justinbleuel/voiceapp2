@@ -12,14 +12,13 @@ import {
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 
-//const API_URL = __DEV__ ? 'http://localhost:3000' : 'https://voiceapp2-production.up.railway.app';
-const API_URL = 'http://localhost:3000'
-const App = () => {
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+
+export default function App() {
   const [audioFile, setAudioFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState('');
   const [transcription, setTranscription] = useState('');
-  const [error, setError] = useState('');
 
   const pickAudio = async () => {
     try {
@@ -32,11 +31,10 @@ const App = () => {
         setAudioFile(result.assets[0]);
         setSummary('');
         setTranscription('');
-        setError('');
       }
     } catch (err) {
       console.error('Error picking audio:', err);
-      setError('Failed to pick audio file');
+      Alert.alert('Error', 'Failed to pick audio file');
     }
   };
 
@@ -44,8 +42,6 @@ const App = () => {
     if (!audioFile) return;
 
     setLoading(true);
-    setError('');
-    
     try {
       const formData = new FormData();
       
@@ -61,8 +57,6 @@ const App = () => {
         });
       }
 
-      console.log('Sending request to:', `${API_URL}/api/summarize`);
-
       const response = await fetch(`${API_URL}/api/summarize`, {
         method: 'POST',
         body: formData,
@@ -71,17 +65,18 @@ const App = () => {
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
       }
 
-      const data = await response.json();
       setSummary(data.summary || '');
       setTranscription(data.transcription || '');
 
     } catch (error) {
       console.error('Upload error:', error);
-      setError(error.message || 'Failed to upload and summarize audio');
+      Alert.alert('Error', error.message || 'Failed to upload and summarize audio');
     } finally {
       setLoading(false);
     }
@@ -89,82 +84,77 @@ const App = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Voice Notes Summary</Text>
-        
-        {error ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Voice Notes Summary</Text>
+          
+          <View style={styles.uploadArea}>
+            {!audioFile ? (
+              <TouchableOpacity 
+                style={styles.uploadButton} 
+                onPress={pickAudio}
+              >
+                <View style={styles.uploadIconContainer}>
+                  <Text style={styles.uploadIcon}>🎙️</Text>
+                </View>
+                <Text style={styles.uploadButtonText}>Select Audio File</Text>
+                <Text style={styles.uploadSubText}>Tap to browse your files</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.filePreview}>
+                <Text style={styles.fileName} numberOfLines={1}>
+                  Selected: {audioFile.name}
+                </Text>
+                <View style={styles.buttonGroup}>
+                  <TouchableOpacity 
+                    style={styles.actionButton} 
+                    onPress={() => setAudioFile(null)}
+                  >
+                    <Text style={styles.actionButtonText}>Change File</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.actionButton, styles.primaryButton]} 
+                    onPress={uploadAndSummarize}
+                    disabled={loading}
+                  >
+                    <Text style={[styles.actionButtonText, styles.primaryButtonText]}>
+                      {loading ? 'Processing...' : 'Summarize'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
-        ) : null}
 
-        <View style={styles.uploadArea}>
-          {!audioFile ? (
-            <TouchableOpacity 
-              style={styles.uploadButton} 
-              onPress={pickAudio}
-            >
-              <View style={styles.uploadIconContainer}>
-                <Text style={styles.uploadIcon}>🎙️</Text>
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#0066CC" />
+              <Text style={styles.loadingText}>Processing your audio file...</Text>
+            </View>
+          )}
+
+          {summary && (
+            <View style={styles.resultContainer}>
+              <View style={styles.summaryContainer}>
+                <Text style={styles.sectionTitle}>Summary</Text>
+                <Text style={styles.summaryText}>{summary}</Text>
               </View>
-              <Text style={styles.uploadButtonText}>Select Audio File</Text>
-              <Text style={styles.uploadSubText}>Tap to browse your files</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.filePreview}>
-              <Text style={styles.fileName} numberOfLines={1}>
-                Selected: {audioFile.name}
-              </Text>
-              <View style={styles.buttonGroup}>
-                <TouchableOpacity 
-                  style={styles.actionButton} 
-                  onPress={() => setAudioFile(null)}
-                >
-                  <Text style={styles.actionButtonText}>Change File</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.primaryButton]} 
-                  onPress={uploadAndSummarize}
-                  disabled={loading}
-                >
-                  <Text style={[styles.actionButtonText, styles.primaryButtonText]}>
-                    {loading ? 'Processing...' : 'Summarize'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              
+              {transcription && (
+                <View style={styles.transcriptionContainer}>
+                  <Text style={styles.sectionTitle}>Transcription</Text>
+                  <Text style={styles.transcriptionText}>{transcription}</Text>
+                </View>
+              )}
             </View>
           )}
         </View>
-
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0066CC" />
-            <Text style={styles.loadingText}>Processing your audio file...</Text>
-          </View>
-        )}
-
-        {summary ? (
-          <View style={styles.resultContainer}>
-            <View style={styles.summaryContainer}>
-              <Text style={styles.sectionTitle}>Summary</Text>
-              <Text style={styles.summaryText}>{summary}</Text>
-            </View>
-            
-            {transcription ? (
-              <View style={styles.transcriptionContainer}>
-                <Text style={styles.sectionTitle}>Transcription</Text>
-                <Text style={styles.transcriptionText}>{transcription}</Text>
-              </View>
-            ) : null}
-          </View>
-        ) : null}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
@@ -175,15 +165,6 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingTop: Platform.OS === 'web' ? 20 : 0,
-  },
-  errorContainer: {
-    backgroundColor: '#ffebee',
-    padding: 10,
-    borderRadius: 4,
-    marginBottom: 20,
-  },
-  errorText: {
-    color: '#c62828',
   },
   title: {
     fontSize: 28,
@@ -318,5 +299,3 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
 });
-
-export default App;

@@ -1,3 +1,4 @@
+// src/screens/HomeScreen.js
 import React, { useState } from 'react';
 import {
   StyleSheet,
@@ -6,20 +7,18 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
-  Alert,
   Platform,
-  ScrollView,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
+import useAuth from '../hooks/useAuth';
 
-//const API_URL = __DEV__ ? 'http://localhost:3000' : 'https://voiceapp2-production.up.railway.app';
-const API_URL = 'http://localhost:3000'
-const App = () => {
+const HomeScreen = () => {  // Changed from App to HomeScreen
   const [audioFile, setAudioFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState('');
   const [transcription, setTranscription] = useState('');
   const [error, setError] = useState('');
+  const { logout } = useAuth();  // Add authentication hook
 
   const pickAudio = async () => {
     try {
@@ -61,6 +60,10 @@ const App = () => {
         });
       }
 
+      const API_URL = process.env.NODE_ENV === 'development' 
+        ? 'http://localhost:3000' 
+        : 'https://voiceapp2-production.up.railway.app';
+
       console.log('Sending request to:', `${API_URL}/api/summarize`);
 
       const response = await fetch(`${API_URL}/api/summarize`, {
@@ -90,7 +93,13 @@ const App = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Voice Notes Summary</Text>
+        {/* Add header with logout */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Voice Notes Summary</Text>
+          <TouchableOpacity onPress={logout} style={styles.logoutButton}>
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
         
         {error ? (
           <View style={styles.errorContainer}>
@@ -161,20 +170,29 @@ const App = () => {
       </View>
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
-  scrollView: {
-    flex: 1,
-  },
   content: {
     padding: 20,
     paddingTop: Platform.OS === 'web' ? 20 : 0,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  logoutButton: {
+    padding: 8,
+  },
+  logoutButtonText: {
+    color: '#0066CC',
+    fontSize: 16,
   },
   errorContainer: {
     backgroundColor: '#ffebee',
@@ -188,8 +206,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginVertical: 24,
     color: '#1a1a1a',
   },
   uploadArea: {
@@ -319,4 +335,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+export default HomeScreen;

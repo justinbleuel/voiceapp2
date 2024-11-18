@@ -14,7 +14,10 @@ app.use(cors({
     origin: [
       'https://handsome-charm-production.up.railway.app',
         'http://localhost:8081',  // Expo development server
-      'http://localhost:3000'
+      'http://localhost:3000',
+      'http://localhost:19006',
+      'http://localhost:19007',  // Add this new port
+      'http://localhost:19008'   // Add this just in case
       
     ],
     methods: ['GET', 'POST', 'OPTIONS'],
