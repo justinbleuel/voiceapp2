@@ -14,7 +14,7 @@ import { supabase } from './supabase'; // Make sure this import points to your s
 //import config from './config';
 
 
-const API_URL = 'http://localhost:3000';//process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 const App = () => {
   const [audioFile, setAudioFile] = useState(null);
@@ -48,9 +48,7 @@ const App = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: Platform.OS === 'web' 
-            ? 'http://localhost:19006/auth/callback'
-            : 'yourscheme://'
+          redirectTo: process.env.EXPO_PUBLIC_AUTH_CALLBACK_URL
         }
       });
   
